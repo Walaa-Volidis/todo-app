@@ -25,12 +25,12 @@ type TaskFilter = {
 export default function TodoPage() {
   const { user } = useUser();
   const userId = user?.id;
-  const { tasks, addTask, deleteTask, isLoading } = useTasks(userId);
   const [filters, setFilters] = useState<TaskFilter>({
     search: "",
-    category: "choose",
+    category: "all",
     date: "",
   });
+  const { tasks, addTask, deleteTask, isLoading } = useTasks(userId, filters);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
