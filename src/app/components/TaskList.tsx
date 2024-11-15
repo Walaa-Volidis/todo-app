@@ -1,12 +1,18 @@
+import { useState } from "react";
 import { Task } from "../types/task";
 import { Button } from "@/components/ui/button";
-import { TrashIcon } from "lucide-react";
+import { TrashIcon, EditIcon } from "lucide-react";
+import TaskUpdateForm from "./TaskFormUpdate";
 
 interface TaskListProps {
   tasks: Task[];
   onDelete: (id: string) => void;
+  onUpdate: (formData: FormData, id: string) => Promise<void>;
 }
-export function TaskList({ tasks, onDelete }: TaskListProps) {
+
+export function TaskList({ tasks, onDelete, onUpdate }: TaskListProps) {
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
   return (
     <div className="space-y-4">
       {tasks.map((task, index) => (
@@ -30,21 +36,39 @@ export function TaskList({ tasks, onDelete }: TaskListProps) {
                   {task.category}
                 </span>
                 <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
-                  Date: {task.date}
+                  Date: {new Date(task.date).toISOString().split("T")[0]}
                 </span>
               </div>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onDelete(task.id)}
-            className="text-gray-400 hover:text-red-500"
-          >
-            <TrashIcon className="w-4 h-4" />
-          </Button>
+          <div className="flex space-x-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSelectedTask(task)}
+              className="text-gray-400 hover:text-red-500"
+            >
+              <EditIcon className="w-4 h-4" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onDelete(task.id)}
+              className="text-gray-400 hover:text-red-500"
+            >
+              <TrashIcon className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       ))}
+      {selectedTask && (
+        <TaskUpdateForm
+          task={selectedTask}
+          updateTask={onUpdate}
+          onClose={() => setSelectedTask(null)}
+        />
+      )}
     </div>
   );
 }

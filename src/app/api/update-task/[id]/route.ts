@@ -19,7 +19,7 @@ export async function PATCH(
       title: formData.get("title"),
       description: formData.get("description"),
       category: formData.get("category"),
-      date: formData.get("date"),
+      date: new Date(formData.get("date") as string).toISOString(),
       userId: formData.get("userId"),
     });
     const updatedTask = await prisma.task.update({

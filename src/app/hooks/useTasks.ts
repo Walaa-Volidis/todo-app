@@ -1,5 +1,6 @@
 import useSWR, { mutate } from "swr";
 import { z } from "zod";
+import { TaskSearch } from "../types/task";
 
 const ZTaskSchema = z.object({
   id: z.number().optional(),
@@ -20,9 +21,13 @@ const fetcher = async (url: string) => {
   return ZTaskSchema.array().parse(data);
 };
 
-export function useTasks(userId: string | undefined) {
+export function useTasks(userId: string | undefined, filters: TaskSearch) {
+  const query = new URLSearchParams(
+    filters as Record<string, string>
+  ).toString();
+
   const { data: tasks = [], error } = useSWR<Task[]>(
-    userId ? "/api/list-tasks" : null,
+    userId ? `/api/list-tasks?${query}` : null,
     fetcher
   );
 
@@ -36,7 +41,11 @@ export function useTasks(userId: string | undefined) {
         userId: formData.get("userId"),
       });
 
-      mutate("/api/list-tasks", [...(tasks || []), formDataTask], false);
+      mutate(
+        `/api/list-tasks?${query}`,
+        [...(tasks || []), formDataTask],
+        false
+      );
 
       const response = await fetch("/api/create-task", {
         method: "POST",
@@ -49,17 +58,17 @@ export function useTasks(userId: string | undefined) {
 
       const newTask = await response.json();
       ZTaskSchema.parse(newTask);
-      mutate("/api/list-tasks");
+      mutate(`/api/list-tasks?${query}`);
     } catch (error) {
       console.error("Failed to add task:", error);
-      mutate("/api/list-tasks");
+      mutate(`/api/list-tasks?${query}`);
     }
   };
 
   const deleteTask = async (id: string) => {
     try {
       mutate(
-        "/api/list-tasks",
+        `/api/list-tasks?${query}`,
         tasks.filter((task) => task.id !== Number(id)),
         false
       );
@@ -72,10 +81,43 @@ export function useTasks(userId: string | undefined) {
         throw new Error("Failed to delete task");
       }
 
-      mutate("/api/list-tasks");
+      mutate(`/api/list-tasks?${query}`);
     } catch (error) {
       console.error("Failed to delete task:", error);
-      mutate("/api/list-tasks");
+      mutate(`/api/list-tasks?${query}`);
+    }
+  };
+
+  const updateTask = async (formData: FormData, id: string) => {
+    try {
+      const formDataTask = ZTaskSchema.parse({
+        title: formData.get("title"),
+        description: formData.get("description"),
+        category: formData.get("category"),
+        date: formData.get("date"),
+        userId: formData.get("userId"),
+      });
+
+      mutate(
+        `/api/list-tasks?${query}`,
+        [...(tasks || []), formDataTask],
+        false
+      );
+      const response = await fetch(`/api/update-task/${id}`, {
+        method: "PATCH",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update task");
+      }
+
+      const newTask = await response.json();
+      ZTaskSchema.parse(newTask);
+      mutate(`/api/list-tasks?${query}`);
+    } catch (error) {
+      console.error("Failed to update task:", error);
+      mutate(`/api/list-tasks?${query}`);
     }
   };
 
@@ -85,5 +127,6 @@ export function useTasks(userId: string | undefined) {
     isLoading: !error && !tasks,
     addTask,
     deleteTask,
+    updateTask,
   };
 }
